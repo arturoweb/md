@@ -9,6 +9,6 @@
 % ITAM, 2015
 %
 function [f] = funcion_P1I1E2(x)
-    f = 3x^2 - exp(x);
+    f = 3*x^2 - exp(x);
 end
 

@@ -8,7 +8,7 @@
 % Prof. Carlos Urrutia,
 % ITAM, 2015
 %
-function [f] = funcion_P1I2( x )
+function [f] = funcion_P1I2(x)
     f = (4*x - 7)/(x - 2);
 end
 
