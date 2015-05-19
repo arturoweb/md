@@ -9,41 +9,6 @@
 % Arturo Reynoso, 000000
 %
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Del correo de Alejandro.. problemas:
-
-% 1. Según yo, cuando k0<kss, la trayectoria hacia el ss está 
-% caracterizada por lt decreciente. Me sale creciente. :´(
-
-% Respueta: Según yo esto está bien. Si el capital empieza
-% por debajo del de estado estacionario, entonces deberá ir
-% aumentando, lo que a su vez hará más rentable el trabajo
-% en el margen y provocará que suba el empleo.
-
-% 2. Tanto en la descripción del lab 1 como en el m file de paz, le 
-% dedican unas líneas a quitar las soluciones de lt que son mayores 
-% a 1. A mí no me salen soluciones mayores a 1. Nunca. Pero estoy 
-% seguro que hay algún error porque siempre la solución de lt está 
-% por encima de lss.
-
-% Respuesta: Comno l_t es proporcional, entonces si obtiene valor
-% arriba de 1 está mal (y se debe eliminar, aunque no debería de
-% ocurrir en primer lugar). Que no te salga l_t > 1 está bien,
-% pero habrá que ver por qué no llega al de estado estacionario.
-
-% 3. Chequé mi álgebra, para ver que no fuera un pedo de aritmética 
-% con los parámetros, pero lss y kss ya cuadran con lo de paz. Tons 
-% no es eso.
-
-% Respuesta: No entendí esto.
-
-% Archivos:
-% t_final_6.m
-% seficiencialaboral.m
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 close all;
 clear all;
 clc;
