@@ -1,10 +1,12 @@
 %
-% Laboratorio 2
-%
-% Omar Trejo Navarro, 119711
-% Macroeconomia Dinamica I,
-% Prof. Carlos Urrutia,
+% Trabajo final - Macroeconomía Dinámica
+% Profesor: Carlos Urrutia
 % ITAM, 2015
+%
+% Equipo:
+% Omar Trejo, 119711
+% Alejandro Cerecero, 000000
+% Arturo Reynoso, 000000
 %
 
 %% Limpiar memoria
