@@ -10,26 +10,24 @@
 % Alejandro Cerecero, 000000
 % Arturo Reynoso, 000000
 %
-% Programa para resolver una version sencilla del problema del
-% planificador social usando el método de iteración de la función
-% de valor.
-%
 function [kt, yt, it, ct] = iter_func_valor(alpha, ...
                                             beta, ...
                                             delta, ...
                                             A, ...
-                                            maxit, ...
+                                            max_iter, ...
                                             crit, ...
                                             T, ...
                                             kss, ...
                                             k0, ...
                                             malla)
+    % TODO: (otn) ¿Por qué estos valores?
+    
     % Malla para K
-    Kmin = 0.5*kss;
-    Kmax = 1.2*kss;
+    k_min = 0.8*kss;
+    k_max = 1.5*kss;
 
     % Partición de la malla
-    K = [Kmin:(Kmax - Kmin)/(malla - 1):Kmax]';
+    K = [k_min:(k_max - k_min)/(malla - 1):k_max]';
 
     % Punto inicial
     V0 = 0*K;
@@ -42,10 +40,10 @@ function [kt, yt, it, ct] = iter_func_valor(alpha, ...
     % Iteracion de la funcion de valor
     %
     figure(1)
-    iconv = 0; % Indicadora, iconv = 1 -> convergencia
-    it = 1;    % Iteraciones
+    terminado = 0;
+    iter = 1;
 
-    while (iconv == 0 & it < maxit)
+    while terminado == 0 & iter < max_iter
 
         % Al transponer estamos sacando
         % el máximo de la primera fila inicial(pues
@@ -56,25 +54,21 @@ function [kt, yt, it, ct] = iter_func_valor(alpha, ...
         G = G';
 
         if norm(V0 - V1) < crit
-            iconv = 1;
+            terminado = 1;
         end
 
         % Gráfica
         plot(K, V1);
-        title(['Valor en iteracion ', int2str(it), ...
+        title(['Valor en iteracion ', int2str(iter), ...
                ' con norma ', num2str(norm(V0 - V1))]);
         pause(0.01);
         V0 = V1;
-        it = it + 1;
+        iter = iter + 1;
     end
 
     figure(2)
-
-    % Dibujo de la función de politica del capital y la 
-    % funcion identidad (K,K). K(G) me indica dado el capital 
-    % hoy cual es el capital de manana y el capital de manana 
-    % se obtiene usando el vector de posicion optimo que 
-    % maximiza la funcion valor.
+    % Gráfica de la función de politica de
+    % capital y la funcion identidad (K,K)
     plot(K, K(G), K, K,':');
     title('Regla de Decisión Óptima');
     text(kss, kss, 'o  kss');
@@ -87,22 +81,12 @@ function [kt, yt, it, ct] = iter_func_valor(alpha, ...
     % el vector K es menor al k0 y su posicion, en este caso 
     % para la posición 120 del vector K tenemos un capital de 
     % 273.47 < 273.365 esto es falso por tanto coloca cero.
+    
     [aux, ind(1)] = min(K < k0);
-
-    % Vamos a partir de la posición K(120)= 273.47 una proxy 
-    % del valor inicial(k0) de (2/3)k de estado estacionario.
     kt(1) = K(ind(1));
+    
     for t = 1:T
-        % G(ind(1)=120)=136 es la posicion optima del capital 
-        % que maximiza la funcion valor que se usara para el 
-        % siguiente periodo.
         ind(t + 1) = G(ind(t));
-
-        % El capital de manana(k_2) optimo va ser la posicion 
-        % 136 del vecto de capital K pues este maximiza la 
-        % funcion valor el loop hace que cada vez a medida que 
-        % pasa el tiempo T el capital se aproxime a su
-        % valor de estado estacionario.
         kt(t + 1)  = K(ind(t + 1));
     end
 

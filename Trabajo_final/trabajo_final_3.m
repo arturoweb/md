@@ -21,7 +21,7 @@ clc
 % beta       = 0.987;  % Factor de descuento
 % delta      = 0.012;  % 
 
-% TODO: (otn) ¿dónde se deben usar estos parámetros?
+% TODO (otn) ¿dónde se deben usar estos parámetros?
 % gamma      = 0.64;
 % rho        = 0.95;
 % sigma_eps  = 0.0024;
@@ -40,7 +40,7 @@ p        = 500;   % Malla
 % debemos usar estos parámetros:
 
 % Cinco estados para el shock
-% theta = [0.0231 -0.0115 0.0115 0.0231];
+% theta = [0.0231 -0.0115 0.0115 0.0231]';
 % q     = length(theta);
 
 % Matriz de transición
@@ -55,80 +55,97 @@ alpha = 0.35;
 beta  = 0.99;
 delta = 0.06;
 A     = 10;
-theta = [0 0.5 1];
+theta = [0 0.5 1]';
 q     = length(theta);
 Pi    = [0.5 0.3 0.2;
          0.1 0.7 0.2;
          0.1 0.4 0.5];
 
 % Capital de estado estacionario simple
+lss  = 1/(((gamma + (1 - alpha)*(1 - gamma))*(1 - beta*(1 - delta)) - ...
+           alpha*beta*delta*gamma) / ...
+          ((1 - alpha)*(1 - gamma)*(1 - beta*(1 - delta))));
 kss = ((A*beta*alpha) / (1 - (1 - delta)*beta))^(1/(1 - alpha));
-k0  = kss;
 
-% TODO: (otn) ¿tenemos que ajustar esto?
+%% TODO (otn) DIFERENTE DE AQUI
+
+k0  = kss; % Estado estacionario vs malla
+
+% TODO (otn) ¿tenemos que ajustar esto?
 % k0  = (2/3)*kss;
 
-%
-% Preparción para el algoritmo
-%
-
-% TODO: (otn) ¿Por qué este tamaño y no otro?
+% TODO (otn) ¿Por qué este tamaño y no otro?
 % k = linspace(0, 1.2*exp(1)*kss, p);
-k = linspace(0, 1.5*kss, p);
+k = linspace(0.8, 1.5*kss, p);
 
 k(1) = 0.000001;
 
-% valor = zeros(p*q, p, 3);
+%% ESTO ES IMPORTANTE
+
+% TODO (otn) Alejandro coloca aquí condiciones de eficiencia laboral
+
+% for i = 1:p
+%     for j = 1:q
+%         z = theta(j);
+%         l0(j,i) = fsolve(@(l0)seficiencialaboral(l0, k0(i), k1(i), A, alpha, ...
+%                                                  delta, gamma, z), lini);
+%     end
+% end
+
+
+%% HASTA AQUI
+
 valor = zeros(p*q, p, q);
 
-%
-% TODO: (otn) Esta parte no la entiendo bien todavía.
-% De aquí.
-
-%
-% Llenado de valor, 1
-%
+% Matriz valor, k(t)
 for i = 1:p
-    valor((i - 1)*q + 1, :, 1) = k(i)*ones(1, p);
-    valor((i - 1)*q + 2, :, 1) = k(i)*ones(1, p);
-    valor((i - 1)*q + 3, :, 1) = k(i)*ones(1, p);
+    for j = 1:q
+        valor((i - 1)*q + j, :, 1) = k(i)*ones(1, p);
+    end
 end
 
-%
-% Llenado de valor, 2
-%
-% Matriz de capitales por filas
+%% CONCILIAR DE AQUI
+
+% Matriz valor, z(t) (vector theta)
+% TODO (otn) No sé qué tiene Alejandro en 2
 valor(:, :, 2) = ones(p*q, 1)*k;
 
-%
-% Llenado de valor, 3
-%
-vector = theta';
+% Matriz valor, k(t+1)
+vector = theta;
 for i = 1:p-1
-    vector = [vector; theta'];
+    vector = [vector; theta];
 end
 
-% TODO: (otn) matriz de ...
+% TODO (otn) alguien tiene las construcciones mal
+
+% TODO (otn) Alejandro tiene k(t+1) en 3
 valor(:, :, 3) = vector*ones(1, p);
-%
-% Hasta aquí.
-%
+
+% TODO (otn) Matriz valor, l(t) (en 4 ¿Por qué esta construcción?)
+% locol = zeros(q*grid,1);
+% for i = 1:grid
+%     locol(i) = l0(1,i);
+%     locol(i + grid)   = l0(2, i);
+%     locol(2*grid + i) = l0(3, i);
+%     locol(3*grid + i) = l0(4, i);
+%     locol(4*grid + i) = l0(5, i);
+% end
+% val(:, :, 4) = locol*ones(1, grid);
 
 % Matriz M
 M = zeros(p*q, p);
 
-% Expresión de lo que debe ir en cada celda:
-% F(Sij,Kl) = F(Ki, Zj, Kl) = u(exp(Zj)*f(Ki) + (1 - delta)Ki - Kl);
-
+% TODO (otn) tenemos esto diferente
 M = log(max(exp(valor(:, :, 3)).*A.*valor(:, :,1).^(alpha) - ...
             valor(:, :, 2) + (1 - delta).*valor(:, :, 1), ...
             0));
 
+%% HASTA AQUI
+
 % Identidad repetida
-I = eye(q);
-E = I;
+E = eye(q);
 for i = 1:p-1
-    E = [E; I];
+    E = [E; eye(q)];
 end
 
 %
@@ -159,37 +176,33 @@ G  = zeros(p, q);
 V  = zeros(p, q);
 
 for i = 1:p
-    G(i, 1) = G1((i - 1)*q + 1);
-    G(i, 2) = G1((i - 1)*q + 2);
-    G(i, 3) = G1((i - 1)*q + 3);
-
-    V(i, 1) = V1((i - 1)*q + 1);
-    V(i, 2) = V1((i - 1)*q + 2);
-    V(i, 3) = V1((i - 1)*q + 3);
+    for j = 1:q
+        G(i, 1) = G1((i - 1)*q + j);
+        V(i, 3) = V1((i - 1)*q + j);
+    end
 end
 
-G(1, 1) = 1;
-G(1, 2) = 1;
-G(1, 3) = 1;
+% Valores iniciales
+for j = 1:q
+    G(1, j) = 1;
+    V(1, j) = V(2, j);
+end
 
-V(1, 1) = V(2, 1);
-V(1, 2) = V(2, 2);
-V(1, 3) = V(2, 3);
+% TODO (otn) modificar al método de Alejandro
 
 for i = 1:p
-    c_1(i) = exp(theta(1))*A*k(i)^alpha - ...
-             k(G(i, 1)) + (1 - delta)*k(i);
-    c_2(i) = exp(theta(2))*A*k(i)^alpha - ...
-             k(G(i, 2)) + (1 - delta)*k(i);
-    c_3(i) = exp(theta(3))*A*k(i)^alpha - ...
-             k(G(i, 3)) + (1 - delta)*k(i);
+    c_1(i) = exp(theta(1))*A*k(i)^alpha - k(G(i, 1)) + (1 - delta)*k(i);
+    c_2(i) = exp(theta(2))*A*k(i)^alpha - k(G(i, 2)) + (1 - delta)*k(i);
+    c_3(i) = exp(theta(3))*A*k(i)^alpha - k(G(i, 3)) + (1 - delta)*k(i);
 end
 
 %
 % Gráficas
 %
-figure(1);
 
+% TODO (otn) hacer las gráficas como Alejandro (más informativas)
+
+figure(1);
 subplot(2, 1, 1);
 plot(k, k(G(:, 1)), 'b', ...
      k, k(G(:, 2)), 'r', ...
