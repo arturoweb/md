@@ -61,39 +61,43 @@ Pi    = [0.5 0.3 0.2;
          0.1 0.7 0.2;
          0.1 0.4 0.5];
 
-% Capital de estado estacionario simple
+% Trabajo del estado estacionario
 lss  = 1/(((gamma + (1 - alpha)*(1 - gamma))*(1 - beta*(1 - delta)) - ...
            alpha*beta*delta*gamma) / ...
           ((1 - alpha)*(1 - gamma)*(1 - beta*(1 - delta))));
+
+% Capital del estado estacionario
 kss = ((A*beta*alpha) / (1 - (1 - delta)*beta))^(1/(1 - alpha));
 
-%% TODO (otn) DIFERENTE DE AQUI
+k0    = 2/3*kss;
+l0    = zeros(q,p);
+k     = linspace(2/3*kss, 1.5*kss, p);
+k(1)  = 0.000001;
+k1(p) = k(p);
+lini  = 0.8*lss;
+k1    = zeros(1, p);  % Malla auxiliar para fsolve
 
-k0  = kss; % Estado estacionario vs malla
+for i = 1:p-1
+    k1(i) = k(i+1);
+end
 
-% TODO (otn) ¿tenemos que ajustar esto?
-% k0  = (2/3)*kss;
+for i = 1:p
+    k0(i) = k(i);
+end
 
-% TODO (otn) ¿Por qué este tamaño y no otro?
-% k = linspace(0, 1.2*exp(1)*kss, p);
-k = linspace(0.8, 1.5*kss, p);
-
-k(1) = 0.000001;
-
-%% ESTO ES IMPORTANTE
-
-% TODO (otn) Alejandro coloca aquí condiciones de eficiencia laboral
-
-% for i = 1:p
-%     for j = 1:q
-%         z = theta(j);
-%         l0(j,i) = fsolve(@(l0)seficiencialaboral(l0, k0(i), k1(i), A, alpha, ...
-%                                                  delta, gamma, z), lini);
-%     end
-% end
-
-
-%% HASTA AQUI
+for i = 1:p
+    for j = 1:q
+        z = theta(j);
+        l0(j,i) = fsolve(@(l0)eficiencia_laboral(l0, ...
+                                                 k0(i), ...
+                                                 k1(i), ...
+                                                 A, ...
+                                                 alpha, ...
+                                                 delta, ...
+                                                 gamma, ...
+                                                 z), lini);
+    end
+end
 
 valor = zeros(p*q, p, q);
 
@@ -110,15 +114,10 @@ end
 % TODO (otn) No sé qué tiene Alejandro en 2
 valor(:, :, 2) = ones(p*q, 1)*k;
 
-% Matriz valor, k(t+1)
 vector = theta;
 for i = 1:p-1
     vector = [vector; theta];
 end
-
-% TODO (otn) alguien tiene las construcciones mal
-
-% TODO (otn) Alejandro tiene k(t+1) en 3
 valor(:, :, 3) = vector*ones(1, p);
 
 % TODO (otn) Matriz valor, l(t) (en 4 ¿Por qué esta construcción?)
@@ -135,10 +134,11 @@ valor(:, :, 3) = vector*ones(1, p);
 % Matriz M
 M = zeros(p*q, p);
 
-% TODO (otn) tenemos esto diferente
+%% REVISAR ESTO
 M = log(max(exp(valor(:, :, 3)).*A.*valor(:, :,1).^(alpha) - ...
             valor(:, :, 2) + (1 - delta).*valor(:, :, 1), ...
             0));
+%% HASTA AQUI
 
 %% HASTA AQUI
 
