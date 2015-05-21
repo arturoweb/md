@@ -1,0 +1,235 @@
+%% TRABAJO FINAL.
+
+% Parámetros del modelo:
+alpha = 0.40;
+beta  = 0.987;
+delta = 0.012;
+A     = 1;
+gamma = 0.64
+rho   = 0.95
+% Cinco estados para el shock
+theta = [0.0231 -0.0115 0 0.0115 0.0231]';
+q     = length(theta);
+
+% Matriz de transición
+Pi = [0.9727 0.0273      0      0      0;
+      0.0041 0.9806 0.0153      0      0;
+           0 0.0082 0.9837 0.0082      0;
+           0      0 0.0153 0.9806 0.0041;
+           0      0      0 0.0273 0.9727]
+
+% Otros parámetros:
+
+maxit = 1000; % número máximo de iteraciones,
+p     = 100;  % tamaño de la malla de k, ( En el ejercicio  p=500)
+crit  = 1e-3; % criterio de tolerancia
+T     = 50;   % número de periodos 
+q     = 5;    % tamaño del vector de choques(3 estados)
+m     = 100   % tamaño de la malla de l
+
+% Cálculo del capital de estado estacionario(kss) para la economía sin
+% incertidumbre( capital inicial y definimos al malla del
+
+
+
+% Trabajo del estado estacionario
+lss  = 1/(((gamma + (1 - alpha)*(1 - gamma))*(1 - beta*(1 - delta)) - ...
+           alpha*beta*delta*gamma) / ...
+          ((1 - alpha)*(1 - gamma)*(1 - beta*(1 - delta))));
+
+l    = linspace(0.2, 0.8, m);       
+% Capital del estado estacionario
+kss = ((A*beta*alpha) / (1 - (1 - delta)*beta))^(1/(1 - alpha));
+
+k    = linspace(2/3*kss, 1.5*kss, p);% crea la malla del capital desde 0 a 1.5*kss con p puntos de malla.
+
+
+%%
+% Nota:  el capital(k) está como vector fila.
+
+% Costruyendo la matriz M:
+% Construiremos tres matrices para poder generar el espacio de tres
+% dimensiones.
+
+% La primera matriz:
+
+value = zeros(p*q,p*m,3);
+for i=1:p
+    value((i-1)*q+1,:,1) = k(i)*ones(1,p*m);
+    value((i-1)*q+2,:,1) = k(i)*ones(1,p*m);
+    value((i-1)*q+3,:,1) = k(i)*ones(1,p*m);
+end
+
+% La segunda matriz:
+kaux=k(1)*ones(p*q,m);
+for i=2:p
+    kaux = [kaux,k(i)*ones(p*q,m)];
+end
+value(:,:,2) = kaux;
+
+
+% La tercera matriz:
+
+vector = theta; %Nota: el vector theta de estados está como fila.
+for i=1:p-1
+    vector = [vector; theta];
+end
+
+value(:,:,3)=vector*ones(1,p*m); % matriz de estados por columna.
+
+
+% La cuarta matriz:
+
+laux = l; %Nota: el vector theta de estados está como fila.
+for i=1:m-1
+    laux = [laux, l];
+end
+value(:,:,4)=ones(p*q,1)*laux; % matriz de capitales por filas.
+
+
+
+M      = zeros(p*q,p*m); % matriz M de zeros, luego lo rellenamos.
+
+M = (1-gamma)*log(max(exp(value(:,:,3)).*A.*value(:,:,1).^(alpha).*value(:,:,4).^(1-alpha)-value(:,:,2)+...
+    (1-delta).*value(:,:,1),1e-100))+gamma*log(max((gamma.*value(:,:,4)/(1-gamma)*(1-alpha))+...
+    (gamma.*value(:,:,4).^alpha.*((1-delta).*value(:,:,1)-value(:,:,2))/(1-gamma)*(1-alpha).*exp(value(:,:,3)).*A.*value(:,:,1).^alpha),1e-100)); % Matriz M guarda  la función  de retorno evaluada  en 
+%cada posible  combinación de ( (k, z) hoy  y  k mañana).
+
+%     F(Sij,Kl)=F(Ki,Zj,Kl)=u(exp(Zj) f(Ki)+(1-delta)Ki-Kl)
+
+% Nota: -Función de utilidad Logarítmica.
+%       -Elminamos las celdas inalcanzables con max, sea el log(consumo) y consumo es negativo le reemplazamos consumo
+% con un valor muy pequeño positivo y para hacer eso usamos la función max. 
+
+% Construcción de matrices auxiliares 
+I   = eye(q);% matriz identidad
+E   = I; 
+for i=1:p-1
+    E=[E;I]; % matriz E de los slides del profesor.
+end
+
+% Comenzando el Algoritmo:
+% 1.- Valor inicial para la función valor (V0=0)
+
+V0 = zeros(p*q,1);
+
+%2.- Iteración de la Función Valor
+
+
+fin = 0; %variable indicadora donde fin=1 indica que se alcanzó la convergencia.
+iter = 1;        % variable que indica las iteraciones, inicializamos el valor en 1.
+while (fin==0 & iter<maxit)
+    me= beta*(E*(pi*reshape(V0,q,p)))
+    betaaux=me(:,1)*ones(1,m);
+for i=2:p
+    betaaux = [betaaux,me(:,i)*ones(1,m)];
+end
+value(:,:,2) = kaux;
+	[V1,G1] = max((M+betaaux)'); % donde el máximo es calculado por filas
+    % Nota: por default el operador max calcula el máximo por columnas, con
+    % transpuesta ya tenemos el max por filas.
+    % la primera fila indicaba F(S11,K1),F(S11,K2),F(S11,K3)...F(S11,Kp)
+    % por tanto decimos dado el capital de hoy(K1) cuál es el máximo
+    % capital de  mañana.
+	V1     = V1';% como el max me devuelve un vector fila para V1(valores máximos), luego lo transpongo
+	G1     = G1'; % como el max me devuelve un vector fila para G1(posiciones del máximo), luego lo transpongo
+	if norm(V0-V1)<crit % esto es para evaluar la convergencia(distancia entre t y t+1)
+		fin=1;
+	end
+	disp(['Iteración= ',num2str(iter),'  ||V0-V1||= ',num2str(norm(V0-V1))]) %para mostrar en la ventana de comandos
+    % las iteraciones que hacemos.
+	V0     = V1; % va cambiando el valor inicial y así poco a poco obtener la convergencia.
+	iter     = iter+1; %para ver el número de iteraciones
+end
+
+
+G = zeros(p,q); %auxiliar
+V = zeros(p,q); %auxiliar
+H = zeros(m,q);
+% Función Valor y Función política para cada estado
+% dibujamos la función valor dado el capital para cada estado
+% y también la regla de política para cada estado.
+% G posición para capital óptimo de mañana dado k(i)
+% H posición para trabajo óptimo de mañana dado l(i)
+for i=1:p
+    G(i,1) = floor((G1((i-1)*q+1))/p);
+    G(i,2) = floor((G1((i-1)*q+2))/p);
+    G(i,3) = floor((G1((i-1)*q+3))/p);
+    G(i,4) = floor((G1((i-1)*q+4))/p);
+    G(i,5) = floor((G1((i-1)*q+5))/p);
+    V(i,1) = V1((i-1)*q+1);
+    V(i,2) = V1((i-1)*q+2);
+    V(i,3) = V1((i-1)*q+3);
+    V(i,4) = V1((i-1)*q+4);
+    V(i,5) = V1((i-1)*q+5);
+end
+
+for i=1:m
+    H(i,1) = mod(G1((i-1)*q+1),m)
+    if H(i,1) == 0
+        H(i,1) = m
+    end
+    H(i,2) = mod(G1((i-1)*q+2),m)
+    if H(i,2) == 0
+        H(i,2) = m
+    end
+    H(i,3) = mod(G1((i-1)*q+3),m)
+    if H(i,3) == 0
+        H(i,3) = m
+    end
+    H(i,4) = mod(G1((i-1)*q+2),m)
+    if H(i,4) == 0
+        H(i,4) = m
+    end
+    H(i,5) = mod(G1((i-1)*q+3),m)
+    if H(i,5) == 0
+        H(i,5) = m
+    end
+end
+    
+
+%Ajustes:
+G(1,1)=1; 
+G(1,2)=1;
+G(1,3)=1;
+G(1,4)=1;
+G(1,5)=1;
+V(1,1)=V(2,1); % repetimos el valor del segundo periodo para el estado 1
+V(1,2)=V(2,2); % repetimos el valor del segundo periodo para el estado 2
+V(1,3)=V(2,3);
+V(1,4)=V(2,4);
+V(1,5)=V(2,5);% repetimos el valor del segundo periodo para el estado 3
+
+%Consumo para cada estado
+for i=1:p
+    c_1(i)  = exp(theta(1))*A*k(i)^alpha*l(H(i,1))^(1-alpha)-k(G(i,1))+(1-delta)*k(i);
+    c_2(i)  = exp(theta(2))*A*k(i)^alpha*l(H(i,2))^(1-alpha)-k(G(i,2))+(1-delta)*k(i);
+    c_3(i)  = exp(theta(3))*A*k(i)^alpha*l(H(i,3))^(1-alpha)-k(G(i,3))+(1-delta)*k(i);
+    c_4(i)  = exp(theta(4))*A*k(i)^alpha*l(H(i,4))^(1-alpha)-k(G(i,4))+(1-delta)*k(i);
+    c_5(i)  = exp(theta(5))*A*k(i)^alpha*l(H(i,5))^(1-alpha)-k(G(i,5))+(1-delta)*k(i);
+    
+end 
+
+for i=1:p
+    l_1(i)  = l(H(i,1));
+    l_2(i)  = l(H(i,2));
+    l_3(i)  = l(H(i,3));
+    l_4(i)  = l(H(i,4));
+    l_5(i)  = l(H(i,5));
+end 
+% Nota: k(G(i,1)) es la función política óptima para el capital en el estado 1
+%     k(G(i,2)) es la función política óptima para el capital en el estado 2
+%     k(G(i,3)) es la función política óptima para el capital en el estado 3
+
+%gráficos de la funcion valor, regla de política óptima para el capital de
+%mañana y consumo.
+figure(1)
+subplot(4,1,1)
+plot(k,k(G(:,1)),'b',k,k(G(:,2)),'r',k,k(G(:,3)),'g',k,k(G(:,4)),'c',k,k(G(:,5)),'m'), legend('theta=-0.0231','theta=-0.0115,'theta=0','theta=0.0115','theta=0.0231'), title('Capital óptimo')
+
+subplot(4,1,2)
+plot(k,V(:,1),'b',k,V(:,2),'r',k,V(:,3),'g',k,V(:,4),'c',k,V(:,5),'m'), legend('theta=-0.0231','theta=-0.0115,'theta=0','theta=0.0115','theta=0.0231'), title('Función Valor')
+
+subplot(4,1,3)
+plot(k,c_1,'b',k,c_2,'r',k,c_3,'g',k,c_4,'c',k,c_3,'m'), legend('theta=-0.0231','theta=-0.0115,'theta=0','theta=0.0115','theta=0.0231'), title('Consumo Óptimo')
+
